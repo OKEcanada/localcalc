@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Local final mile delivery calculator for One Kind Express." />
+<meta name="theme-color" content="#07091a" />
+<title>Local Final Mile Calculator | One Kind Express</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+<style>
+  :root {
+    --ink: #0c1024;
+    --ink-soft: #252a45;
+    --ink-muted: #6b7191;
+    --paper: #fbfaf6;
+    --paper-card: rgba(255, 254, 250, 0.97);
+    --paper-soft: rgba(255, 254, 250, 0.72);
+    --line: rgba(12, 16, 36, 0.12);
+    --line-dark: rgba(255, 254, 250, 0.12);
+    --accent: #ff7a45;
+    --accent-deep: #c64411;
+    --accent-soft: #ffe6d6;
+    --cool: #4fd1c5;
+    --cool-deep: #0e7490;
+    --positive: #16a34a;
+    --danger: #ef4444;
+    --bg-deep: #07091a;
+    --bg-mid: #0e1230;
+    --shadow-card: 0 24px 70px -24px rgba(255, 122, 69, 0.28), 0 12px 36px -18px rgba(7, 9, 26, 0.42);
+    --radius: 8px;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--bg-deep); }
+  body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: 0;
+    background: var(--bg-deep);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input, select { font: inherit; letter-spacing: 0; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  .scene {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background:
+      linear-gradient(125deg, rgba(255,122,69,0.13), transparent 34%),
+      linear-gradient(225deg, rgba(79,209,197,0.12), transparent 38%),
+      linear-gradient(180deg, #050717 0%, #0a0e28 52%, #071321 100%);
+  }
+  .scene::before {
+    content: "";
+    position: absolute;
+    inset: -10%;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 63px, rgba(255,255,255,0.035) 64px 65px),
+      repeating-linear-gradient(0deg, transparent 0 63px, rgba(255,255,255,0.022) 64px 65px),
+      repeating-linear-gradient(45deg, transparent 0 92px, rgba(255,122,69,0.04) 93px 94px);
+    opacity: 0.65;
+    transform: perspective(900px) rotateX(58deg) translateY(8%);
+    transform-origin: 50% 100%;
+  }
+  .scene::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(5,7,23,0.72), transparent 22%, transparent 76%, rgba(5,7,23,0.72)),
+      linear-gradient(180deg, rgba(5,7,23,0.02), rgba(5,7,23,0.72));
+  }
+  .route-map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.82;
+  }
+  .route-map path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 26px 18px 42px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 22px;
+    padding: 12px;
+    color: var(--paper);
+    background: rgba(255, 254, 250, 0.08);
+    border: 1px solid rgba(255, 254, 250, 0.14);
+    border-radius: var(--radius);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+  }
+  .brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    color: #fff;
+    background: linear-gradient(155deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 10px 26px rgba(255,122,69,0.34);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .brand-name {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: baseline;
+    font-weight: 800;
+    color: var(--paper);
+  }
+  .brand-name span:last-child { color: var(--accent); }
+  .brand-sub {
+    color: rgba(255,254,250,0.58);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .powered {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,254,250,0.78);
+    border: 1px solid rgba(79,209,197,0.28);
+    background: rgba(79,209,197,0.10);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .powered::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--cool);
+    box-shadow: 0 0 14px rgba(79,209,197,0.78);
+  }
+
+  .workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--paper-card);
+    border: 1px solid rgba(255,255,255,0.68);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px 22px 18px;
+    border-bottom: 1px solid var(--line);
+    background:
+      linear-gradient(135deg, rgba(255,122,69,0.10), transparent 42%),
+      linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,254,250,0.58));
+  }
+  h1, h2 {
+    margin: 0;
+    color: var(--ink);
+    line-height: 1.05;
+    letter-spacing: 0;
+  }
+  h1 { font-size: 38px; font-weight: 900; }
+  h2 { font-size: 20px; font-weight: 850; }
+  .panel-kicker {
+    margin-top: 7px;
+    color: var(--ink-muted);
+    font-size: 14px;
+  }
+  .market-pill {
+    flex: 0 0 auto;
+    padding: 8px 10px;
+    border: 1px solid rgba(255,122,69,0.26);
+    border-radius: var(--radius);
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .form {
+    padding: 20px 22px 22px;
+    display: grid;
+    gap: 18px;
+  }
+  .section {
+    display: grid;
+    gap: 12px;
+    padding: 0 0 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .section:last-child { border-bottom: 0; padding-bottom: 0; }
+  .section-title {
+    color: var(--ink);
+    font-weight: 800;
+    font-size: 13px;
+  }
+  .field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+  }
+  .field.full { grid-column: 1 / -1; }
+  .field-note {
+    color: var(--ink-muted);
+    font-size: 12px;
+  }
+  .rate-guide {
+    border: 1px solid rgba(255,122,69,0.32);
+    border-radius: var(--radius);
+    background: rgba(255,122,69,0.08);
+    overflow: hidden;
+  }
+  .rate-guide summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    color: var(--accent-deep);
+    font-weight: 900;
+    cursor: pointer;
+    list-style: none;
+  }
+  .rate-guide summary::-webkit-details-marker { display: none; }
+  .rate-guide summary::after {
+    content: "+";
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    background: linear-gradient(155deg, var(--accent), var(--accent-deep));
+    font-family: var(--font-mono);
+    font-size: 14px;
+    flex: 0 0 auto;
+  }
+  .rate-guide[open] summary::after { content: "-"; }
+  .quote-rate-guide .rate-table {
+    border: 0;
+    border-top: 1px solid rgba(255,122,69,0.20);
+    border-radius: 0;
+  }
+  .rate-help {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 0 12px 12px;
+  }
+  .help-card {
+    min-height: 104px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.66);
+  }
+  .help-title {
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 850;
+    margin-bottom: 6px;
+  }
+  .help-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--ink-muted);
+    font-size: 12px;
+    padding: 2px 0;
+  }
+  .help-line strong {
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .help-note {
+    color: var(--ink-muted);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  label, .field-label {
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+  }
+  input[type="number"], select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.86);
+    color: var(--ink);
+    padding: 10px 12px;
+    outline: none;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+  }
+  input[type="text"], input[type="date"], textarea {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.86);
+    color: var(--ink);
+    padding: 10px 12px;
+    outline: none;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset;
+  }
+  textarea {
+    min-height: 78px;
+    resize: vertical;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255,122,69,0.16);
+  }
+  input[type="number"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255,122,69,0.16);
+  }
+
+  .segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .segmented button {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink-soft);
+    font-weight: 800;
+    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  }
+  .segmented button:hover { transform: translateY(-1px); border-color: rgba(255,122,69,0.42); }
+  .segmented button.active {
+    color: #fff;
+    border-color: var(--accent-deep);
+    background: linear-gradient(155deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 12px 24px -16px rgba(255,122,69,0.9);
+  }
+
+  .check-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.68);
+    color: var(--ink-soft);
+    font-weight: 750;
+  }
+  .check-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+    flex: 0 0 auto;
+  }
+  .check-row span { min-width: 0; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    padding: 10px 14px;
+    font-weight: 850;
+    color: #fff;
+    background: linear-gradient(155deg, var(--accent), var(--accent-deep));
+    box-shadow: 0 12px 28px -18px rgba(255,122,69,0.95);
+  }
+  .btn.secondary {
+    color: var(--ink-soft);
+    border-color: var(--line);
+    background: rgba(255,255,255,0.82);
+    box-shadow: none;
+  }
+  .btn svg { width: 16px; height: 16px; }
+
+  .quote-panel {
+    position: sticky;
+    top: 16px;
+  }
+  .total-box {
+    padding: 24px 22px 18px;
+    color: var(--paper);
+    background:
+      linear-gradient(135deg, rgba(255,122,69,0.22), transparent 44%),
+      linear-gradient(180deg, #0b0f24, #111633);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .total-label {
+    color: rgba(255,254,250,0.64);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .total {
+    margin-top: 4px;
+    color: var(--paper);
+    font-size: 48px;
+    line-height: 1;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+  .total-sub {
+    margin-top: 8px;
+    color: rgba(255,254,250,0.68);
+    font-size: 13px;
+  }
+  .quote-body {
+    padding: 18px 22px 22px;
+    display: grid;
+    gap: 18px;
+  }
+  .line-items {
+    display: grid;
+    gap: 8px;
+  }
+  .line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .line:last-child { border-bottom: 0; }
+  .line .name {
+    color: var(--ink-soft);
+    font-weight: 650;
+    min-width: 0;
+  }
+  .line .amount {
+    color: var(--ink);
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .line.muted .name, .line.muted .amount { color: var(--ink-muted); font-weight: 650; }
+  .line.total-row {
+    margin-top: 6px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,122,69,0.28);
+    border-bottom: 0;
+  }
+  .line.total-row .name { color: var(--accent-deep); font-weight: 850; }
+  .line.total-row .amount { color: var(--accent-deep); font-size: 20px; }
+
+  .rate-table {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .rate-table.distance {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .rate-cell {
+    padding: 10px 8px;
+    min-height: 70px;
+    display: grid;
+    align-content: center;
+    gap: 2px;
+    background: rgba(255,255,255,0.62);
+    border-right: 1px solid var(--line);
+  }
+  .rate-cell:last-child { border-right: 0; }
+  .rate-cell.active {
+    color: #fff;
+    background: linear-gradient(155deg, var(--accent), var(--accent-deep));
+  }
+  .rate-cell .range {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 800;
+    color: inherit;
+  }
+  .rate-cell .rate {
+    font-weight: 900;
+    font-size: 17px;
+    color: inherit;
+  }
+  .total-control {
+    margin-top: 16px;
+    display: grid;
+    gap: 6px;
+    max-width: 320px;
+  }
+  .total-control label {
+    color: rgba(255,254,250,0.68);
+  }
+  .total-control input, .total-control select {
+    background: rgba(255,255,255,0.96);
+  }
+  .total-controls {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+    gap: 10px;
+    align-items: end;
+  }
+  .print-quote { display: none; }
+
+  .notice {
+    display: none;
+    padding: 12px;
+    border-radius: var(--radius);
+    background: rgba(14,116,144,0.10);
+    border: 1px solid rgba(14,116,144,0.24);
+    color: var(--cool-deep);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .notice.show { display: block; }
+  .copy-state {
+    min-height: 18px;
+    color: var(--positive);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 980px) {
+    .workspace { grid-template-columns: 1fr; }
+    .quote-panel { position: static; }
+    h1 { font-size: 34px; }
+  }
+
+  @media (max-width: 640px) {
+    .app { padding: 14px 12px 28px; }
+    .topbar { align-items: flex-start; }
+    .powered { display: none; }
+    .panel-head { display: grid; padding: 18px; }
+    h1 { font-size: 30px; }
+    .form, .quote-body { padding: 18px; }
+    .field-grid { grid-template-columns: 1fr; }
+    .rate-help { grid-template-columns: 1fr; }
+    .rate-table { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rate-table.distance { grid-template-columns: 1fr; }
+    .rate-cell:nth-child(2) { border-right: 0; }
+    .rate-cell:nth-child(1), .rate-cell:nth-child(2) { border-bottom: 1px solid var(--line); }
+    .rate-table.distance .rate-cell { border-right: 0; border-bottom: 1px solid var(--line); }
+    .rate-table.distance .rate-cell:last-child { border-bottom: 0; }
+    .total-controls { grid-template-columns: 1fr; }
+    .total { font-size: 40px; }
+  }
+
+  @media print {
+    @page { margin: 0.55in; }
+    body {
+      background: #fff;
+      color: #111827;
+      font-size: 11pt;
+    }
+    .scene, .app { display: none !important; }
+    .print-quote {
+      display: block;
+      font-family: var(--font-body);
+    }
+    .print-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      border-bottom: 2px solid #111827;
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .print-logo {
+      font-weight: 900;
+      font-size: 22pt;
+      color: #111827;
+    }
+    .print-meta {
+      text-align: right;
+      color: #4b5563;
+      font-size: 10pt;
+    }
+    .print-title {
+      font-size: 18pt;
+      font-weight: 850;
+      margin: 0 0 6px;
+    }
+    .print-total {
+      font-size: 28pt;
+      font-weight: 900;
+      color: #c64411;
+      margin: 12px 0 18px;
+    }
+    .print-lines {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+    }
+    .print-lines th, .print-lines td {
+      border-bottom: 1px solid #e5e7eb;
+      padding: 9px 0;
+      text-align: left;
+      vertical-align: top;
+    }
+    .print-lines th:last-child, .print-lines td:last-child {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .print-lines tfoot td {
+      font-weight: 850;
+      border-bottom: 0;
+      padding-top: 12px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="scene" aria-hidden="true">
+  <svg class="route-map" viewBox="0 0 1440 900" preserveAspectRatio="none">
+    <path d="M-80 690 C 170 590, 320 660, 545 514 S 910 270, 1530 180" stroke="rgba(255,122,69,0.32)" stroke-width="3" />
+    <path d="M-40 360 C 190 310, 310 425, 510 378 S 845 225, 1120 305 S 1370 455, 1510 350" stroke="rgba(79,209,197,0.28)" stroke-width="2" />
+    <path d="M130 850 C 245 690, 380 680, 520 612 S 790 490, 990 608 S 1290 760, 1500 620" stroke="rgba(255,254,250,0.13)" stroke-width="2" />
+    <path d="M170 608 h116 M760 355 h146 M1030 605 h150" stroke="rgba(255,254,250,0.22)" stroke-width="1" />
+  </svg>
+</div>
+
+<main class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">OKE</div>
+      <div>
+        <div class="brand-name"><span>One Kind Express</span><span>Local Final Mile</span></div>
+        <div class="brand-sub">Calgary and Montreal</div>
+      </div>
+    </div>
+    <div class="powered">Powered by One Kind Express</div>
+  </header>
+
+  <div class="workspace">
+    <section class="panel" aria-labelledby="calculatorTitle">
+      <div class="panel-head">
+        <div>
+          <h1 id="calculatorTitle">Local Final Mile Calculator</h1>
+          <div class="panel-kicker" id="zoneLine">Calgary local and regional</div>
+        </div>
+        <div class="market-pill" id="activeTierPill">1 delivery total</div>
+      </div>
+
+      <form class="form" id="calculatorForm">
+        <div class="section">
+          <div class="section-title">Location</div>
+          <div class="segmented" role="group" aria-label="Location">
+            <button type="button" class="active" data-market="Calgary">Calgary</button>
+            <button type="button" data-market="Montreal">Montreal</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Quote details</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="customerName">Customer</label>
+              <input id="customerName" name="customerName" type="text" placeholder="Customer or account name" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="quoteDate">Quote date</label>
+              <input id="quoteDate" name="quoteDate" type="date" />
+            </div>
+            <div class="field full">
+              <label for="quoteNotes">Quote notes</label>
+              <textarea id="quoteNotes" name="quoteNotes" placeholder="Pickup window, address notes, service assumptions..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Delivery batch</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="localDeliveries">Deliveries up to 50 km</label>
+              <input id="localDeliveries" name="localDeliveries" type="number" min="0" step="1" value="1" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="regionalDeliveries">Deliveries 50-150 km</label>
+              <input id="regionalDeliveries" name="regionalDeliveries" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="extendedDeliveries">Deliveries 150-300 km</label>
+              <input id="extendedDeliveries" name="extendedDeliveries" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="extraNonChair">Extra non-chair items</label>
+              <input id="extraNonChair" name="extraNonChair" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="extraChairs">Extra chairs</label>
+              <input id="extraChairs" name="extraChairs" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="specialHandling">Sofa-bed or bed mechanism</label>
+              <input id="specialHandling" name="specialHandling" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+          </div>
+          <details class="rate-guide" id="rateGuide">
+            <summary>Pricing guide</summary>
+            <div class="rate-help" id="rateHelp"></div>
+          </details>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Assembly and install</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="bedAssembly">Bed assembly</label>
+              <input id="bedAssembly" name="bedAssembly" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="tableAssembly">Standard table assembly</label>
+              <input id="tableAssembly" name="tableAssembly" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="smallInstall">Small installation items</label>
+              <input id="smallInstall" name="smallInstall" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="whiteGloveReturnQty">White glove returns</label>
+              <input id="whiteGloveReturnQty" name="whiteGloveReturnQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="whiteGloveExchangeQty">White glove exchanges</label>
+              <input id="whiteGloveExchangeQty" name="whiteGloveExchangeQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field full" id="whiteGloveMinutesField" hidden>
+              <label for="whiteGloveMinutes">White glove extra time</label>
+              <input id="whiteGloveMinutes" name="whiteGloveMinutes" type="number" min="45" step="15" value="45" inputmode="numeric" />
+              <div class="field-note">First 45 min included when assembly/install is selected. After that, add $75 per 15 min.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Special pricing</div>
+          <div class="field-grid">
+            <label class="check-row full">
+              <input id="chairOnly" type="checkbox" />
+              <span>Chair-only delivery</span>
+            </label>
+            <div class="field" id="chairOnlyField" hidden>
+              <label for="chairOnlyCount">Chair count</label>
+              <input id="chairOnlyCount" name="chairOnlyCount" type="number" min="1" max="10" step="1" value="1" inputmode="numeric" />
+            </div>
+            <label class="check-row full">
+              <input id="dockToDock" type="checkbox" />
+              <span>Dock-to-dock, no handling</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Extra charges</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="palletQty">Pallet charge</label>
+              <input id="palletQty" name="palletQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="pollystrapQty">Pollystrap</label>
+              <input id="pollystrapQty" name="pollystrapQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="shrinkwrapQty">Shrinkwrap</label>
+              <input id="shrinkwrapQty" name="shrinkwrapQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="blanketQty">Blankets</label>
+              <input id="blanketQty" name="blanketQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="storageMonths">Storage after free 24h per box/pallet</label>
+              <input id="storageMonths" name="storageMonths" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label for="crossDockQty">Cross dock</label>
+              <input id="crossDockQty" name="crossDockQty" type="number" min="0" step="1" value="0" inputmode="numeric" />
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="button" id="copyBtn"><i data-lucide="copy"></i>Copy quote</button>
+          <button class="btn secondary" type="button" id="printBtn"><i data-lucide="printer"></i>Print / save PDF</button>
+          <button class="btn secondary" type="reset"><i data-lucide="rotate-ccw"></i>Reset</button>
+        </div>
+        <div class="copy-state" id="copyState" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <aside class="panel quote-panel" aria-live="polite">
+      <div class="total-box">
+        <div class="total-label">Estimated total</div>
+        <div class="total" id="totalAfterTax">$0</div>
+        <div class="total-sub" id="quoteSubline">Subtotal $0 before tax</div>
+        <div class="total-controls">
+          <div class="total-control">
+            <label for="fuelPct">Fuel surcharge %</label>
+            <input id="fuelPct" name="fuelPct" type="number" min="0" step="0.1" value="0" inputmode="decimal" />
+          </div>
+          <div class="total-control">
+            <label for="taxMode">Tax</label>
+            <select id="taxMode" name="taxMode">
+              <option value="market">Use location tax</option>
+              <option value="none">No tax</option>
+              <option value="gst">GST 5% - AB, NT, NU, YT</option>
+              <option value="bc">BC GST/PST 12%</option>
+              <option value="mb">MB GST/RST 12%</option>
+              <option value="sk">SK GST/PST 11%</option>
+              <option value="qc">QC GST/QST 14.975%</option>
+              <option value="on">ON HST 13%</option>
+              <option value="ns">NS HST 14%</option>
+              <option value="hst15">NB, NL, PE HST 15%</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="quote-body">
+        <details class="rate-guide quote-rate-guide" id="quoteRateGuide">
+          <summary>Distance add-ons</summary>
+          <div class="rate-table" id="rateTable"></div>
+        </details>
+        <div class="notice" id="notice"></div>
+        <div class="line-items" id="lineItems"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<section class="print-quote" id="printQuote" aria-hidden="true"></section>
+
+<script>
+  const SHARED_PRICE_MODEL = {
+    tiers: [
+      { min: 1, max: 1, label: "1 delivery", rate: 220 },
+      { min: 2, max: 4, label: "2-4 deliveries", rate: 180 },
+      { min: 5, max: 8, label: "5-8 deliveries", rate: 150 },
+      { min: 9, max: Infinity, label: "9+ deliveries", rate: 100 }
+    ],
+    distanceBands: [
+      { id: "local", label: "Up to 50 km", addOn: 0 },
+      { id: "regional", label: "50-150 km", addOn: 80, flatFirst: 600 },
+      { id: "extended", label: "150-300 km", addOn: 120, flatFirst: 750 }
+    ],
+    bedAssemblyTiers: [
+      { min: 1, max: 1, rate: 150 },
+      { min: 2, max: 4, rate: 125 },
+      { min: 5, max: 8, rate: 100 },
+      { min: 9, max: Infinity, rate: 75 }
+    ],
+    regionalBedAssembly: 100,
+    extraNonChair: 20,
+    extraChair: 5,
+    specialHandling: 40,
+    tableAssembly: 50,
+    smallInstall: 10,
+    chairOnly: [
+      { min: 1, max: 6, rate: 80 },
+      { min: 7, max: 10, rate: 120 }
+    ],
+    dockToDock: 400,
+    whiteGloveReturn: 60,
+    whiteGloveExchange: 70,
+    whiteGloveIncludedMinutes: 45,
+    whiteGloveExtraBlock: 75,
+    accessorials: {
+      pallet: 21,
+      pollystrap: 15,
+      shrinkwrap: 20,
+      blanket: 25,
+      storageMonth: 15,
+      crossDock: 280
+    }
+  };
+
+  const RATE_BOOK = {
+    Montreal: {
+      ...SHARED_PRICE_MODEL,
+      zone: "Montreal local and regional",
+      taxOption: "qc"
+    },
+    Calgary: {
+      ...SHARED_PRICE_MODEL,
+      zone: "Calgary local and regional",
+      taxOption: "gst"
+    }
+  };
+
+  const TAX_OPTIONS = {
+    none: { label: "No tax", rate: 0 },
+    gst: { label: "GST", rate: 0.05 },
+    bc: { label: "BC GST/PST", rate: 0.12 },
+    mb: { label: "MB GST/RST", rate: 0.12 },
+    sk: { label: "SK GST/PST", rate: 0.11 },
+    qc: { label: "QC GST/QST", rate: 0.14975 },
+    on: { label: "ON HST", rate: 0.13 },
+    ns: { label: "NS HST", rate: 0.14 },
+    hst15: { label: "NB/NL/PE HST", rate: 0.15 }
+  };
+
+  const state = {
+    market: "Calgary"
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const today = () => new Date().toISOString().slice(0, 10);
+  const money = (value) => value.toLocaleString("en-CA", {
+    style: "currency",
+    currency: "CAD",
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2
+  });
+  const deliveryWord = (count) => count === 1 ? "delivery" : "deliveries";
+  const whole = (id, fallback = 0) => {
+    const value = Number($(id).value);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(fallback, Math.floor(value));
+  };
+  const decimal = (id, fallback = 0) => {
+    const value = Number($(id).value);
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(fallback, value);
+  };
+  const findBand = (bands, count) => bands.find((band) => count >= band.min && count <= band.max) || bands[bands.length - 1];
+  const percentLabel = (rate) => {
+    const pct = rate * 100;
+    return pct.toFixed(rate === 0.14975 ? 3 : Number.isInteger(pct) ? 0 : 2);
+  };
+
+  function currentTax(market) {
+    const selected = $("taxMode").value;
+    if (selected === "market") return TAX_OPTIONS[market.taxOption] || TAX_OPTIONS.none;
+    return TAX_OPTIONS[selected] || TAX_OPTIONS.none;
+  }
+
+  function hasAssemblySelected() {
+    return whole("bedAssembly", 0) + whole("tableAssembly", 0) + whole("smallInstall", 0) > 0;
+  }
+
+  function calculate() {
+    const market = RATE_BOOK[state.market];
+    const distanceCounts = {
+      local: whole("localDeliveries", 0),
+      regional: whole("regionalDeliveries", 0),
+      extended: whole("extendedDeliveries", 0)
+    };
+    const deliveries = distanceCounts.local + distanceCounts.regional + distanceCounts.extended;
+    const pricingDeliveries = Math.max(1, deliveries);
+    const localTier = findBand(market.tiers, pricingDeliveries);
+    const bedTier = findBand(market.bedAssemblyTiers, pricingDeliveries);
+    const tax = currentTax(market);
+    const chairOnly = $("chairOnly").checked;
+    const dockToDock = $("dockToDock").checked;
+    const fuelPct = decimal("fuelPct", 0);
+    const assemblySelected = hasAssemblySelected();
+
+    const lines = [];
+    let subtotal = 0;
+    let notice = "";
+
+    if (!deliveries && !dockToDock && !chairOnly) {
+      notice = "Add deliveries by distance range to build the delivery portion of the quote.";
+    }
+
+    if (dockToDock) {
+      subtotal += market.dockToDock;
+      lines.push({ name: "Dock-to-dock, no handling", amount: market.dockToDock });
+    } else if (chairOnly) {
+      const chairs = Math.min(10, Math.max(1, whole("chairOnlyCount", 1)));
+      const chairBand = findBand(market.chairOnly, chairs);
+      subtotal += chairBand.rate;
+      lines.push({ name: `Chair-only delivery (${chairs} chair${chairs === 1 ? "" : "s"})`, amount: chairBand.rate });
+      if (whole("chairOnlyCount", 1) > 10) {
+        notice = "Chair-only special is priced for up to 10 chairs. Extra chairs are capped in this estimate.";
+      }
+    } else {
+      if (deliveries) {
+        const deliveryBase = deliveries * localTier.rate;
+        const deliveryName = `${deliveries} ${deliveryWord(deliveries)} x ${money(localTier.rate)}`;
+        subtotal += deliveryBase;
+        lines.push({ name: deliveryName, amount: deliveryBase });
+
+        for (const band of market.distanceBands) {
+          const count = distanceCounts[band.id] || 0;
+          if (!count || !band.addOn) continue;
+          const amount = band.flatFirst + Math.max(0, count - 1) * band.addOn;
+          subtotal += amount;
+          const name = count === 1
+            ? `${band.label} distance charge (${money(band.flatFirst)} first delivery)`
+            : `${band.label} distance charge (${money(band.flatFirst)} first + ${count - 1} x ${money(band.addOn)})`;
+          lines.push({ name, amount });
+        }
+      }
+    }
+
+    const unitLabel = (unit, qty) => {
+      if (!unit) return "";
+      if (Array.isArray(unit)) return qty === 1 ? unit[0] : unit[1];
+      return unit;
+    };
+    const add = (id, label, unit, suffix) => {
+      const qty = whole(id, 0);
+      if (!qty) return;
+      const amount = qty * unit;
+      subtotal += amount;
+      const suffixText = unitLabel(suffix, qty);
+      lines.push({ name: `${label} (${qty}${suffixText ? " " + suffixText : ""} x ${money(unit)})`, amount });
+    };
+
+    add("extraNonChair", "Extra non-chair items", market.extraNonChair, ["item", "items"]);
+    add("extraChairs", "Extra chairs", market.extraChair, ["chair", "chairs"]);
+    add("specialHandling", "Sofa-bed or bed mechanism", market.specialHandling, ["delivery", "deliveries"]);
+
+    const bedAssembly = whole("bedAssembly", 0);
+    if (bedAssembly) {
+      const amount = bedAssembly * bedTier.rate;
+      subtotal += amount;
+      lines.push({ name: `Bed assembly (${bedAssembly} x ${money(bedTier.rate)})`, amount });
+    }
+
+    add("tableAssembly", "Standard table assembly", market.tableAssembly, ["table", "tables"]);
+    add("smallInstall", "Small installation", market.smallInstall, ["item", "items"]);
+
+    add("whiteGloveReturnQty", "White glove return", market.whiteGloveReturn, ["return", "returns"]);
+    add("whiteGloveExchangeQty", "White glove exchange", market.whiteGloveExchange, ["exchange", "exchanges"]);
+    if (assemblySelected) {
+      const minutes = whole("whiteGloveMinutes", market.whiteGloveIncludedMinutes);
+      const extraMinutes = Math.max(0, minutes - market.whiteGloveIncludedMinutes);
+      const blocks = Math.ceil(extraMinutes / 15);
+      if (blocks) {
+        const amount = blocks * market.whiteGloveExtraBlock;
+        subtotal += amount;
+        lines.push({ name: `Assembly extra time after included 45 min (${blocks} x 15 min)`, amount });
+      }
+    }
+
+    const accessorials = market.accessorials;
+    add("palletQty", "Pallet charge", accessorials.pallet, ["pallet", "pallets"]);
+    add("pollystrapQty", "Pollystrap", accessorials.pollystrap, ["item", "items"]);
+    add("shrinkwrapQty", "Shrinkwrap", accessorials.shrinkwrap, ["item", "items"]);
+    add("blanketQty", "Blankets", accessorials.blanket, ["blanket", "blankets"]);
+    add("storageMonths", "Storage after free 24h per box/pallet", accessorials.storageMonth, ["month", "months"]);
+    add("crossDockQty", "Cross dock", accessorials.crossDock, ["job", "jobs"]);
+
+    const fuelAmount = subtotal * (fuelPct / 100);
+    const taxableTotal = subtotal + fuelAmount;
+    const taxAmount = taxableTotal * tax.rate;
+    const total = taxableTotal + taxAmount;
+
+    return {
+      market,
+      deliveries,
+      distanceCounts,
+      tier: localTier,
+      localTier,
+      tax,
+      fuelPct,
+      fuelAmount,
+      taxAmount,
+      subtotal,
+      taxableTotal,
+      total,
+      lines,
+      notice
+    };
+  }
+
+  function quoteMeta() {
+    return {
+      customer: $("customerName") ? $("customerName").value.trim() : "",
+      date: $("quoteDate") && $("quoteDate").value ? $("quoteDate").value : today(),
+      notes: $("quoteNotes") ? $("quoteNotes").value.trim() : ""
+    };
+  }
+
+  function renderRates(result) {
+    $("rateTable").classList.add("distance");
+    $("rateTable").innerHTML = result.market.distanceBands.map((band) => {
+      const count = result.distanceCounts[band.id] || 0;
+      const active = count > 0 ? " active" : "";
+      const rate = band.addOn ? `${money(band.flatFirst)} first` : "No extra";
+      const detail = count ? `${count} in quote` : "0 in quote";
+      return `
+        <div class="rate-cell${active}">
+          <div class="range">${band.label}</div>
+          <div class="rate">${rate}</div>
+          <div class="range">${detail}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderRateHelp(result) {
+    const tiers = result.market.tiers.map((tier) => `
+      <div class="help-line">
+        <span>${tier.label}</span>
+        <strong>${money(tier.rate)} each</strong>
+      </div>
+    `).join("");
+    const distanceLines = result.market.distanceBands.map((band) => {
+      const value = band.addOn ? `${money(band.flatFirst)} first + ${money(band.addOn)} extra` : "included";
+      return `
+        <div class="help-line">
+          <span>${band.label}</span>
+          <strong>${value}</strong>
+        </div>
+      `;
+    }).join("");
+    $("rateHelp").innerHTML = `
+      <div class="help-card">
+        <div class="help-title">Delivery count</div>
+        ${tiers}
+      </div>
+      <div class="help-card">
+        <div class="help-title">Distance range</div>
+        ${distanceLines}
+      </div>
+      <div class="help-card">
+        <div class="help-title">Quote order</div>
+        <div class="help-line"><span>Base + distance + extras</span><strong>subtotal</strong></div>
+        <div class="help-line"><span>Fuel surcharge</span><strong>before tax</strong></div>
+        <div class="help-line"><span>Tax</span><strong>last</strong></div>
+        <div class="help-note">Put each delivery into its distance bucket. All deliveries count toward the same volume tier, then each longer range adds its own first-delivery charge and extra-delivery rate.</div>
+      </div>
+    `;
+  }
+
+  function renderLines(result) {
+    const baseLines = result.lines.length ? result.lines : [{ name: "No priced lines", amount: 0, muted: true }];
+    const rows = baseLines.map((line) => `
+      <div class="line${line.muted ? " muted" : ""}">
+        <div class="name">${line.name}</div>
+        <div class="amount">${money(line.amount)}</div>
+      </div>
+    `);
+    rows.push(`
+      <div class="line muted">
+        <div class="name">Subtotal before fuel</div>
+        <div class="amount">${money(result.subtotal)}</div>
+      </div>
+    `);
+    if (result.fuelPct > 0) {
+      rows.push(`
+        <div class="line muted">
+          <div class="name">Fuel surcharge (${result.fuelPct}%)</div>
+          <div class="amount">${money(result.fuelAmount)}</div>
+        </div>
+      `);
+    }
+    rows.push(`
+      <div class="line muted">
+        <div class="name">Tax (${result.tax.label} ${percentLabel(result.tax.rate)}%)</div>
+        <div class="amount">${money(result.taxAmount)}</div>
+      </div>
+    `);
+    rows.push(`
+      <div class="line total-row">
+        <div class="name">Total</div>
+        <div class="amount">${money(result.total)}</div>
+      </div>
+    `);
+    $("lineItems").innerHTML = rows.join("");
+  }
+
+  function render() {
+    const result = calculate();
+    $("zoneLine").textContent = result.market.zone;
+    $("activeTierPill").textContent = `${result.deliveries} ${deliveryWord(result.deliveries)} total`;
+    $("totalAfterTax").textContent = money(result.total);
+    $("quoteSubline").textContent = `Fuel/tax base ${money(result.taxableTotal)} before ${result.tax.label}`;
+    $("chairOnlyField").hidden = !$("chairOnly").checked;
+    $("whiteGloveMinutesField").hidden = !hasAssemblySelected();
+    $("notice").textContent = result.notice;
+    $("notice").classList.toggle("show", Boolean(result.notice));
+    renderRates(result);
+    renderRateHelp(result);
+    renderLines(result);
+    renderPrintQuote(result);
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[char]));
+  }
+
+  function renderPrintQuote(result) {
+    const meta = quoteMeta();
+    const lineRows = result.lines.map((line) => `
+      <tr>
+        <td>${escapeHtml(line.name)}</td>
+        <td>${money(line.amount)}</td>
+      </tr>
+    `).join("");
+    $("printQuote").innerHTML = `
+      <div class="print-head">
+        <div>
+          <div class="print-logo">One Kind Express</div>
+          <p class="print-title">Local Final Mile Quote</p>
+          <p>${escapeHtml(state.market)} - ${escapeHtml(result.market.zone)} - ${result.deliveries} ${deliveryWord(result.deliveries)} total</p>
+          ${meta.customer ? `<p>Customer: ${escapeHtml(meta.customer)}</p>` : ""}
+          ${meta.notes ? `<p>Notes: ${escapeHtml(meta.notes)}</p>` : ""}
+        </div>
+        <div class="print-meta">
+          <div>${escapeHtml(meta.date)}</div>
+          <div>Generated by Local Final Mile Calculator</div>
+        </div>
+      </div>
+      <div class="print-total">${money(result.total)}</div>
+      <table class="print-lines">
+        <thead><tr><th>Charge</th><th>Amount</th></tr></thead>
+        <tbody>${lineRows}</tbody>
+        <tfoot>
+          <tr><td>Subtotal before fuel</td><td>${money(result.subtotal)}</td></tr>
+          <tr><td>Fuel surcharge (${result.fuelPct}%)</td><td>${money(result.fuelAmount)}</td></tr>
+          <tr><td>Tax (${escapeHtml(result.tax.label)} ${percentLabel(result.tax.rate)}%)</td><td>${money(result.taxAmount)}</td></tr>
+          <tr><td>Total</td><td>${money(result.total)}</td></tr>
+        </tfoot>
+      </table>
+    `;
+  }
+
+  function quoteText() {
+    const result = calculate();
+    const meta = quoteMeta();
+    const lines = result.lines.map((line) => `- ${line.name}: ${money(line.amount)}`).join("\n");
+    return [
+      "One Kind Express local final mile quote",
+      meta.customer ? `Customer: ${meta.customer}` : "",
+      `Quote date: ${meta.date}`,
+      `Location: ${state.market}`,
+      `Zone: ${result.market.zone}`,
+      `Deliveries: ${result.deliveries} total (${result.distanceCounts.local} up to 50 km, ${result.distanceCounts.regional} at 50-150 km, ${result.distanceCounts.extended} at 150-300 km)`,
+      meta.notes ? `Notes: ${meta.notes}` : "",
+      "",
+      lines,
+      `Subtotal before fuel: ${money(result.subtotal)}`,
+      `Fuel surcharge (${result.fuelPct}%): ${money(result.fuelAmount)}`,
+      `Tax (${result.tax.label}): ${money(result.taxAmount)}`,
+      `Total: ${money(result.total)}`
+    ].filter(Boolean).join("\n");
+  }
+
+  document.querySelectorAll("[data-market]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.market = button.dataset.market;
+      document.querySelectorAll("[data-market]").forEach((btn) => btn.classList.toggle("active", btn === button));
+      if ($("taxMode").value === "market") render();
+      else render();
+    });
+  });
+
+  document.querySelectorAll("input, select").forEach((input) => {
+    input.addEventListener("input", render);
+    input.addEventListener("change", render);
+  });
+
+  $("calculatorForm").addEventListener("reset", () => {
+    window.setTimeout(() => {
+      state.market = "Calgary";
+      document.querySelectorAll("[data-market]").forEach((button) => button.classList.toggle("active", button.dataset.market === state.market));
+      $("fuelPct").value = "0";
+      $("copyState").textContent = "";
+      render();
+    }, 0);
+  });
+
+  $("copyBtn").addEventListener("click", async () => {
+    const text = quoteText();
+    $("copyState").textContent = "";
+    try {
+      await navigator.clipboard.writeText(text);
+      $("copyState").textContent = "Quote copied.";
+    } catch (error) {
+      $("copyState").textContent = text;
+    }
+  });
+
+  $("printBtn").addEventListener("click", () => {
+    render();
+    window.print();
+  });
+
+  window.addEventListener("DOMContentLoaded", () => {
+    if ($("quoteDate") && !$("quoteDate").value) $("quoteDate").value = today();
+    render();
+    if (window.lucide) window.lucide.createIcons();
+  });
+</script>
+</body>
+</html>
